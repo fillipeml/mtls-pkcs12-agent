@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: typecheck + lint + tests + fixtures
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+
+      - name: Fixtures regenerate, including the RC2 one openssl has to build
+        run: |
+          openssl version
+          npm run fixtures | tee fixtures.txt
+          grep -q "RC2-40-CBC" fixtures.txt
+
+      - run: npm test
+
+      - name: Node refuses the legacy file and this package opens it
+        run: |
+          npm run mtls -- compare fixtures/valid-legacy.p12 --passphrase fixture-passphrase | tee compare.txt
+          grep -q "REFUSES it" compare.txt
+          grep -q "this package              : accepts it" compare.txt
+
+      - name: An expired certificate exits 2, an unexpired one exits 0
+        run: |
+          npm run --silent mtls -- check fixtures/valid-modern.p12 --passphrase fixture-passphrase
+          ! npm run --silent mtls -- check fixtures/expired.p12 --passphrase fixture-passphrase
+
+      - name: Nothing prints the private key
+        run: |
+          npm run --silent mtls -- inspect fixtures/valid-modern.p12 --passphrase fixture-passphrase | tee inspect.txt
+          ! grep -q "PRIVATE KEY" inspect.txt
+          ! grep -q "BEGIN CERTIFICATE" inspect.txt
+
+      - name: Server verification is on unless deliberately disabled
+        run: |
+          grep -q "rejectUnauthorized: !options.dangerouslyDisableServerVerification" src/agent.ts
+          ! grep -rn "rejectUnauthorized: false" src/
+
+  secrets:
+    name: secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

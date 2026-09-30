@@ -1,0 +1,24 @@
+# Repository-local gitleaks configuration.
+#
+# This package's whole subject is PKCS#12 certificates, so its fixtures are PKCS#12 files and
+# the default `pkcs12-file` rule flags every one of them. They are allowlisted by path below,
+# and two other controls keep that from hiding anything real:
+#
+#   * `npm run fixtures` regenerates every one of them from scratch, so nothing can persist in
+#     them that the generator did not put there;
+#   * the test suite asserts each fixture is self-signed to "Example Organisation" in country
+#     ZZ, so a real certificate committed under one of these names fails the tests.
+#
+# Nothing else is allowlisted. A certificate anywhere but `fixtures/` is still a finding.
+
+title = "mtls-pkcs12-agent"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Generated, self-signed fixture certificates whose private keys are published on purpose"
+paths = [
+  '''^fixtures/[a-z-]+\.p12$''',
+  '''(^|/)gitleaks\.toml$''',
+]
