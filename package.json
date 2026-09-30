@@ -1,0 +1,27 @@
+{
+  "name": "mtls-pkcs12-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Mutual-TLS HTTPS agents in Node from a PKCS#12 certificate, including the legacy-encrypted ones Node itself refuses, without ever writing the private key to disk",
+  "engines": { "node": ">=22.18" },
+  "scripts": {
+    "mtls": "node --experimental-strip-types src/cli.ts",
+    "fixtures": "node --experimental-strip-types scripts/make-fixtures.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "node-forge": "^1.3.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9",
+    "@types/node": "^22",
+    "@types/node-forge": "^1.3.11",
+    "eslint": "^9",
+    "typescript": "^5",
+    "typescript-eslint": "^8",
+    "vitest": "^5.0.2"
+  }
+}
