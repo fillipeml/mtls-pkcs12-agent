@@ -58,7 +58,9 @@ jobs:
       - name: Server verification is on unless deliberately disabled
         run: |
           grep -q "rejectUnauthorized: !options.dangerouslyDisableServerVerification" src/agent.ts
-          ! grep -rn "rejectUnauthorized: false" src/
+          # An assignment, not a mention: the module docstring quotes the flag to explain
+          # why the package does not use it, and that sentence is worth keeping.
+          ! grep -rnE "^[[:space:]]*rejectUnauthorized: false" src/
 
   secrets:
     name: secret scan
