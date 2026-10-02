@@ -47,7 +47,10 @@ jobs:
       - name: An expired certificate exits 2, an unexpired one exits 0
         run: |
           npm run --silent mtls -- check fixtures/valid-modern.p12 --passphrase fixture-passphrase
-          ! npm run --silent mtls -- check fixtures/expired.p12 --passphrase fixture-passphrase
+          # Exit 2 specifically, not merely non-zero: 2 is the documented contract for an
+          # expired certificate, and a regression to 1 would read the same to `!`.
+          npm run --silent mtls -- check fixtures/expired.p12 --passphrase fixture-passphrase             && code=0 || code=$?
+          test "$code" -eq 2
 
       - name: Nothing prints the private key
         run: |
@@ -60,7 +63,7 @@ jobs:
           grep -q "rejectUnauthorized: !options.dangerouslyDisableServerVerification" src/agent.ts
           # An assignment, not a mention: the module docstring quotes the flag to explain
           # why the package does not use it, and that sentence is worth keeping.
-          ! grep -rnE "^[[:space:]]*rejectUnauthorized: false" src/
+          ! grep -rnE 'rejectUnauthorized:[[:space:]]*false([,}[:space:]]|$)' src/
 
   secrets:
     name: secret scan
