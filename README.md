@@ -27,8 +27,7 @@ chain        0 intermediate certificate(s) in the file
 status       usable, 14327 day(s) left
 
 $ npm run mtls -- check fixtures/expired.p12 --passphrase fixture-passphrase
-FAIL  CN=Example Expired Client: the certificate expired on 2026-01-11 and no handshake
-      using it will succeed
+FAIL  CN=Example Expired Client, O=Example Organisation, C=ZZ: the certificate expired on 2026-01-11 and no handshake using it will succeed
 ```
 
 ## Why this exists
@@ -70,6 +69,7 @@ npm run mtls -- env             # the environment variables it reads
 ```
 
 ```typescript
+import https from "node:https";
 import { fromEnv, createAgent, AgentCache } from "mtls-pkcs12-agent";
 
 const identity = fromEnv();                       // base64 env var, or a path
@@ -82,8 +82,18 @@ const agent = createAgent(identity, {
   caPem: readFileSync("issuing-chain.pem", "utf8"),
 });
 
-await fetch("https://api.example.gov/v1/status", { dispatcher: agent });
+const response = await new Promise<IncomingMessage>((resolve, reject) => {
+  https.request("https://api.example.gov/v1/status", { agent }, resolve)
+    .on("error", reject)
+    .end();
+});
 ```
+
+**Not `fetch`.** `createAgent` returns a `node:https` Agent, and `fetch` takes neither of the
+options people reach for: `dispatcher` wants an undici Dispatcher and throws on this one, while
+`agent` is accepted and silently ignored — which is the worse failure, because the request goes
+out without the client certificate and the server answers as if you had never presented one.
+Use `https.request`, or build an undici `Agent` with the same `cert`/`key` if you need `fetch`.
 
 For a service holding one certificate per customer, `AgentCache` keeps an agent per
 certificate so the TLS session cache is reused:
@@ -233,7 +243,7 @@ allowlisted for the secret scanner by path — with the two compensating control
 ## Tests
 
 ```bash
-npm test          # 61 tests
+npm test          # 65 tests
 npm run typecheck
 npm run lint
 ```
