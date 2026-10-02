@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "exports": { ".": "./src/index.ts" },
   "description": "Mutual-TLS HTTPS agents in Node from a PKCS#12 certificate, including the legacy-encrypted ones Node itself refuses, without ever writing the private key to disk",
   "engines": { "node": ">=22.18" },
   "scripts": {

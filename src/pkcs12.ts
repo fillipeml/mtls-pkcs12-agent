@@ -126,7 +126,6 @@ function bagsOf(container: forge.pkcs12.Pkcs12Pfx, oid: string): forge.pkcs12.Ba
  *  error about the wrong certificate being presented. */
 function pickLeaf(certificates: forge.pki.Certificate[]): forge.pki.Certificate {
   if (certificates.length === 1) return certificates[0]!;
-  const subjects = new Set(certificates.map((cert) => describe(cert.subject.attributes)));
   const leaves = certificates.filter(
     (cert) =>
       !certificates.some(
@@ -137,7 +136,6 @@ function pickLeaf(certificates: forge.pki.Certificate[]): forge.pki.Certificate 
   );
   if (leaves.length === 1) return leaves[0]!;
   // Ambiguous, which happens with a self-signed pair: fall back to the first, deterministically.
-  void subjects;
   return leaves[0] ?? certificates[0]!;
 }
 

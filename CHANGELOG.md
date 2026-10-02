@@ -18,6 +18,6 @@ First public release: mutual-TLS HTTPS agents from a PKCS#12 certificate, extrac
 - The leaf certificate chosen rather than assumed, since bag order in a PKCS#12 is not guaranteed and taking the first one fails the handshake on files where the CA is stored first.
 - A command line: `inspect`, `check`, `compare`, `probe` and `env`.
 - Generated, self-signed, synthetic fixtures, including one built with the `openssl` binary specifically so it uses RC2 encryption, which is the algorithm that matters and which no JavaScript library writes.
-- 61 offline tests, and CI that asserts the behaviour rather than only running the suite: that Node refuses the legacy fixture and this package opens it, that an expired certificate exits 2, that no command prints a key, and that no literal insecure TLS flag exists in the source.
+- 65 offline tests, and CI that asserts the behaviour rather than only running the suite: that Node refuses the legacy fixture and this package opens it, that an expired certificate exits 2, that no command prints a key, and that no literal insecure TLS flag exists in the source.
 
 [0.1.0]: https://github.com/fillipeml/mtls-pkcs12-agent/releases/tag/v0.1.0

@@ -12,7 +12,7 @@
  * The real cause is almost always a server that does not send its intermediate certificate,
  * and the real fix is to supply the CA yourself. So this package takes `caPem`, and its
  * escape hatch is spelled `dangerouslyDisableServerVerification`, must be passed explicitly,
- * and calls the `onInsecure` hook every time an agent is built with it.
+ * and calls the `onWarning` hook every time an agent is built with it.
  */
 import https from "node:https";
 
