@@ -20,5 +20,4 @@ useDefault = true
 description = "Generated, self-signed fixture certificates whose private keys are published on purpose"
 paths = [
   '''^fixtures/[a-z-]+\.p12$''',
-  '''(^|/)gitleaks\.toml$''',
 ]

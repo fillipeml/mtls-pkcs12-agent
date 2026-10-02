@@ -247,12 +247,21 @@ describe("where the certificate comes from", () => {
 });
 
 describe("the fixtures themselves", () => {
-  it("are self-signed and synthetic", () => {
-    const valid = identity("valid-modern.p12");
+  // This is the second of the two compensating controls `.gitleaks.toml` names to justify
+  // publishing these private keys, so it has to cover every file the allowlist covers — not
+  // one of them, which is what it did.
+  it.each([
+    ["valid-modern.p12", PASSPHRASE],
+    ["valid-legacy.p12", PASSPHRASE],
+    ["expired.p12", PASSPHRASE],
+    ["not-yet-valid.p12", PASSPHRASE],
+    ["no-passphrase.p12", ""],
+  ])("%s is self-signed and synthetic", (name, passphrase) => {
+    const fixture = identity(name, passphrase);
     // A fixture that is a real certificate is a real certificate in a public repository.
-    expect(valid.subject).toBe(valid.issuer);
-    expect(valid.subject).toContain("Example Organisation");
-    expect(valid.subject).toContain("C=ZZ");
+    expect(fixture.subject).toBe(fixture.issuer);
+    expect(fixture.subject).toContain("Example Organisation");
+    expect(fixture.subject).toContain("C=ZZ");
   });
 
   it("include one that is generated to be unreadable by Node", () => {
