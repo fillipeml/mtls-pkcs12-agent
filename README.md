@@ -144,6 +144,92 @@ handshake with an error about the wrong certificate being presented.
 | `probe <url> --cert <file> [--ca <file>]` | One request, with the likely cause named if the handshake fails |
 | `env` | The environment variables it reads |
 
+## Known failure modes
+
+Four, and what this package does about each.
+
+**A certificate that expires while nothing is being deployed.** A client certificate issued to
+an organisation typically lasts a year, so the first symptom is a handshake failing one morning
+with an error from the far side that says nothing about dates. `createAgent` refuses an expired
+identity and names the date, `expiryWarning` returns a string weeks earlier, and `mtls check`
+exits 0, 1 or 2 so a scheduled job can page somebody before it happens.
+
+**A container that will not open, for three different reasons.** The wrong passphrase, a file
+that is not a PKCS#12 at all, and an encryption algorithm the reader cannot handle are
+indistinguishable in a generic parse error, and each sends you somewhere completely different:
+a typo, the wrong file, and the reason this package exists. They get three classes and three
+messages.
+
+**A clock that is wrong rather than a certificate that is.** A machine whose time is skewed
+produces "not yet valid" exactly as a genuinely future-dated certificate would, so the error
+message says to check the clock before assuming the file is at fault.
+
+**A server that cannot be verified.** The usual cause is a server that does not send its
+intermediate, and the usual fix found online is to disable verification — which, on a mutual-TLS
+connection, means presenting your client certificate to whatever host answered. The supported
+fix is `caPem`; the escape hatch is named `dangerouslyDisableServerVerification`, must be passed
+explicitly, and warns every time. The `probe` command recognises the two Node error codes that
+mean this and says so rather than leaving you to search for it.
+
+One thing this package does **not** solve: the certificate still has to be stored somewhere
+between runs. Loading it from a base64 environment variable keeps it off the filesystem, which
+is the common case this was built for, but a service holding one certificate per customer needs
+an answer about encryption at rest that is outside the scope of a client library.
+
+## How AI was used
+
+No model is involved at runtime.
+
+An AI coding assistant was used to build it, and the part that matters is that **the premise
+was verified by running it rather than asserted**. The claim this package rests on — that Node
+refuses a PKCS#12 file which is perfectly valid — was tested by generating both a legacy and a
+modern container and feeding each to Node's own reader. That test is in the suite, so if Node
+ever stops refusing the legacy one, the package has lost its reason to exist and CI says so.
+
+That check also corrected a first attempt: a fixture generated with 3DES, which looked like the
+right "legacy" choice, is still accepted by Node and did not reproduce the failure at all. The
+algorithm that matters is RC2-40-CBC, which no JavaScript library writes any more — so that one
+fixture has to be built by the `openssl` binary, and the fixture generator says why.
+
+**Rejected:** the insecure TLS default inherited from the project this was extracted from. The
+original set `rejectUnauthorized: false` unconditionally, in the client and in all six of its
+probe scripts. Carrying that over would have been the path of least resistance and is the single
+behaviour that changed on the way out — extracting a component is a good moment to stop
+inheriting a default nobody chose.
+
+Two smaller ones worth recording because both were caught by tooling rather than by reading. A
+constant named `SHROUDED_KEY_BAG` tripped the secret scanner's generic-key rule; renaming it
+beat allowlisting it, because an allowlist entry is a permanent hole and a rename is not. And
+the CI guard that checks no insecure TLS assignment exists in the source was matching the module
+docstring that *explains why the package does not use one* — so it now matches an assignment
+rather than a mention.
+
+**Validated:** CI asserts the behaviour rather than only running the suite — that Node refuses
+the legacy fixture and this package opens it, that an expired certificate exits 2, that no
+command prints a private key, and that no insecure TLS assignment exists in the source.
+Commits were made with an AI assistant; attribution trailers are omitted and the usage is
+documented here.
+
+## Data and privacy
+
+This package handles private keys, so nearly all of it is privacy-relevant.
+
+The key exists only in memory and is never written to disk by this package. That is not a
+convenience: the common workaround for the OpenSSL problem above is to convert the file with
+the `openssl` binary and keep the resulting PEM, which puts an unencrypted private key on a
+disk where it survives a crash, lands in a container layer, and is readable by anything running
+as the same user.
+
+Nothing prints the key. `toString`, `toJSON` and every command show the subject, the issuer, the
+serial, the validity window and a SHA-256 fingerprint — enough to say *which* certificate this
+is, and nothing usable. CI greps the command output to keep it that way.
+
+Every certificate in this repository is generated by `npm run fixtures`: self-signed, synthetic,
+issued to a fictional organisation under a reserved country code, with a throwaway key created
+seconds beforehand. Their private keys are published on purpose, which is why they are
+allowlisted for the secret scanner by path — with the two compensating controls stated in
+`.gitleaks.toml`.
+
 ## Tests
 
 ```bash
