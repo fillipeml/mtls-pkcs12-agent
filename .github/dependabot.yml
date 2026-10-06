@@ -19,3 +19,10 @@ updates:
         patterns: ["*"]
     commit-message:
       prefix: "chore(deps)"
+    ignore:
+      # typescript-eslint does not support TypeScript 7.0, and npm refuses to resolve the two
+      # together. Because the bumps are grouped, one unresolvable package blocked every other
+      # update in the group — the lint tooling held back the runtime dependencies. Held at 6.x
+      # until typescript-eslint announces support; remove this entry then, not before.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
